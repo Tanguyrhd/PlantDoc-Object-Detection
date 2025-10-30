@@ -2,6 +2,7 @@ pytest==8.3.3
 pylint==3.3.1
 ipdb==0.13.13
 jupyterlab==4.3.2
+dotenv==0.9.9
 
 numpy==2.1.2
 pandas==2.2.3

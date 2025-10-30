@@ -1,3 +1,4 @@
 .mcp.json
 CLAUDE.md
-dataset
+dataset/
+.env
