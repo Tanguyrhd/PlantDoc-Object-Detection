@@ -1,3 +1,5 @@
 .mcp.json
 CLAUDE.md
-dataset
+dataset/
+notebooks/
+.env
