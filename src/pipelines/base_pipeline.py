@@ -12,7 +12,64 @@ from ..config import PipelineConfig
 from ..data import DataLoader, DataValidator, FeatureExtractor
 from ..processing import DataBalancer, YOLOConverter
 
+"""
+To Do here:
+- Change the pass in the abstract classes to NotImplementedError
+- Change the none in the attributes to init args:
+    From:
+    # DataFrames (to be set by subclasses)
+    self.df_train: pd.DataFrame = None
+    self.df_test: pd.DataFrame = None
+    self.df_train_processed: pd.DataFrame = None
+    self.df_test_processed: pd.DataFrame = None
 
+    to:
+    def __init__(
+        self, 
+        config: PipelineConfig,
+        df_train,
+        df_test,
+        df_train_processed,
+        df_test_processed,
+    ):
+
+    ...
+
+    self.df_train: pd.DataFrame = df_train
+    self.df_test: pd.DataFrame = df_test
+    self.df_train_processed: pd.DataFrame = df_train_processed
+    self.df_test_processed: pd.DataFrame = df_test_processed
+
+- remove this: Must be implemented by subclasses. from docstrings
+    - will be taken care of by the not implemented error
+
+- Add beter type hints in the docstrings & explain what comes out
+    - I should be able to not only understand what the method/class does from the docstrings, but also what comes in and what comes out
+        - if the only input is self, you don't need to mention it.
+"""
+
+"""
+Structure changes:
+
+load_and_prepare_data:
+- Would separate this into a load method, a prepare (or process) method and then a wrapper method
+    - Gives you the flexibility to change the loading or the processing without affecting everything else
+    - Makes it easier to understand
+    - Single responsibility methods
+
+Abstract methods
+- Make sure that those are methods that will be used by all of the child classes. (I have not checked... just saying. at first glance it seems okay)
+
+yolo_converter
+- Funny, but would name it something more explicit. What makes it yolo?
+
+get_pipeline_type
+- Could be a __init__ arg instead of a method
+
+get_class_column
+- Could be a __init__ arg instead of a method
+
+"""
 class BasePipeline(ABC):
     """Abstract base class for all pipelines."""
 
@@ -35,7 +92,7 @@ class BasePipeline(ABC):
         self.df_test: pd.DataFrame = None
         self.df_train_processed: pd.DataFrame = None
         self.df_test_processed: pd.DataFrame = None
-
+    
     def load_and_prepare_data(self):
         """Load, clean, extract features, and validate data."""
         print(f"\n{'='*60}")
