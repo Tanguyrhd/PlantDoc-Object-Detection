@@ -1,51 +1,24 @@
-"""
-Base Pipeline
-Abstract base class for all data processing pipelines.
-"""
-
 from abc import ABC, abstractmethod
 import pandas as pd
 from pathlib import Path
 from typing import Dict, Tuple
+from PIL import Image
+import re
 
 from ..config import PipelineConfig
 from ..data import DataLoader, DataValidator, FeatureExtractor
 from ..processing import DataBalancer, YOLOConverter
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 """
 To Do here:
 - Change the pass in the abstract classes to NotImplementedError
-- Change the none in the attributes to init args:
-    From:
-    # DataFrames (to be set by subclasses)
-    self.df_train: pd.DataFrame = None
-    self.df_test: pd.DataFrame = None
-    self.df_train_processed: pd.DataFrame = None
-    self.df_test_processed: pd.DataFrame = None
+    DONE - CHECK if there are all pertinant
 
-    to:
-    def __init__(
-        self, 
-        config: PipelineConfig,
-        df_train,
-        df_test,
-        df_train_processed,
-        df_test_processed,
-    ):
-
-    ...
-
-    self.df_train: pd.DataFrame = df_train
-    self.df_test: pd.DataFrame = df_test
-    self.df_train_processed: pd.DataFrame = df_train_processed
-    self.df_test_processed: pd.DataFrame = df_test_processed
-
-- remove this: Must be implemented by subclasses. from docstrings
-    - will be taken care of by the not implemented error
-
-- Add beter type hints in the docstrings & explain what comes out
-    - I should be able to not only understand what the method/class does from the docstrings, but also what comes in and what comes out
-        - if the only input is self, you don't need to mention it.
 """
 
 """
@@ -71,95 +44,288 @@ get_class_column
 
 """
 class BasePipeline(ABC):
-    """Abstract base class for all pipelines."""
+    """
+    Abstract base class for all pipelines.
+    Set the standard method to modify raw data into specific structure to train a YOLO model
 
-    def __init__(self, config: PipelineConfig):
+        raw :
+            --> Dataset/train/image.jpeg and image.xml
+            --> Dataset/test/image.jpeg and image.xml
+            --> Dataset/train_labels.csv
+            --> Dataset/test_labels.csv
+
+        final :
+            --> Dataset/model_name/images/train/image.jpeg
+            --> Dataset/model_name/images/val/image.jpeg
+            --> Dataset/model_name/labels/train/image.txt
+            --> Dataset/model_name/labels/val/image.txt
+            --> Dataset/model_name/dataset.yaml
+
+    Parameters
+    ----------
+    config : Pipeline configuration object
+
+    df_train : Training Dataframe
+
+    df_test : Testing Dataframe
+
+    df_train_processed : Training processed Dataframe
+
+    df_train_processed : Training processed Dataframe
+
+    """
+
+    def __init__(
+        self,
+        config: PipelineConfig
+        ):
+
+        self.config = config
+
+    def load_data(self):
         """
-        Initialize base pipeline.
+        Load training and test data from CSV files and store as instance attributes.
+
+        Sets:
+            self.df_train: Training labels DataFrame
+            self.df_test: Test labels DataFrame
+        """
+
+        self.df_train = pd.read_csv(self.config.train_labels_csv)
+        self.df_test = pd.read_csv(self.config.test_labels_csv)
+
+        logger.info(
+            f"✓ Loaded: train_labels_csv with {len(self.df_train)} rows, "
+            f"and test_labels_csv with {len(self.df_test)} rows")
+
+    def _clean_class_column(self, df):
+        """
+        Clean class names in a DataFrame.
 
         Args:
-            config: Pipeline configuration object
+            df (pd.DataFrame): DataFrame with 'class' column
+
+        Returns:
+            pd.DataFrame: DataFrame with cleaned class names
         """
-        self.config = config
-        self.data_loader = DataLoader()
-        self.data_validator = DataValidator()
-        self.feature_extractor = FeatureExtractor(config.plant_species)
-        self.balancer = DataBalancer()
-        self.yolo_converter = YOLOConverter()
+        df['class'] = (
+            df['class']
+            .str.replace(r'(?i)leaf', '', regex=True)
+            .str.replace(r'\s+', ' ', regex=True)
+            .str.replace(r'_', ' ', regex=True)
+            .str.strip()
+        )
+        return df
 
-        # DataFrames (to be set by subclasses)
-        self.df_train: pd.DataFrame = None
-        self.df_test: pd.DataFrame = None
-        self.df_train_processed: pd.DataFrame = None
-        self.df_test_processed: pd.DataFrame = None
-    
-    def load_and_prepare_data(self):
-        """Load, clean, extract features, and validate data."""
-        print(f"\n{'='*60}")
-        print(f"LOADING AND PREPARING DATA")
-        print(f"{'='*60}\n")
+    def clean_data(self):
+        """
+        Clean class names by removing 'leaf', extra spaces, and underscores.
 
-        # Load and clean
-        self.df_train, self.df_test = self.data_loader.load_and_clean(
-            self.config.train_labels_csv,
-            self.config.test_labels_csv
+        Modifies:
+            self.df_train['class']: Cleaned class names
+            self.df_test['class']: Cleaned class names
+        """
+        self.df_train = self._clean_class_column(self.df_train)
+        self.df_test = self._clean_class_column(self.df_test)
+
+        logger.info(
+            f"Cleaned class names for train ({len(self.df_train)} rows) "
+            f"and test ({len(self.df_test)} rows)"
         )
 
-        # Extract features
-        self.df_train = self.feature_extractor.add_features(self.df_train, "train")
-        self.df_test = self.feature_extractor.add_features(self.df_test, "test")
+    def _fix_zero_dimensions(self, df: pd.DataFrame, image_folder: Path, dataset_type: str):
+        """
+        Fix rows with zero width or height by reading actual image dimensions.
 
-        # Validate
-        self.df_train = self.data_validator.validate_and_fix(
-            self.df_train,
-            self.config.train_images_dir,
-            "train"
-        )
-        self.df_test = self.data_validator.validate_and_fix(
-            self.df_test,
-            self.config.test_images_dir,
-            "test"
-        )
+        Args:
+            df: DataFrame with image metadata
+            image_folder: Path to folder containing images
 
-        print(f"\n✓ Data preparation complete")
+        Returns:
+            DataFrame with fixed dimensions
+        """
+        fixed_count = 0
+
+        for idx, row in df.iterrows():
+            if row['width'] == 0 or row['height'] == 0:
+                image_path = image_folder / row['filename']
+                if image_path.exists():
+                    with Image.open(image_path) as img:
+                        w, h = img.size
+                        df.at[idx, 'width'] = w
+                        df.at[idx, 'height'] = h
+                        fixed_count += 1
+
+        if fixed_count > 0:
+            logger.info(f"✓ Fixed {fixed_count} rows with zero dimensions on the {dataset_type} dataset")
+        else:
+            logger.info(f"✓ No rows with zero dimensions on the {dataset_type} dataset")
+
+        return df
+
+    def _verify_files_exist(self, df: pd.DataFrame, image_folder: Path, dataset_type: str):
+        """
+        Filter DataFrame to keep only rows where image files exist.
+
+        Args:
+            df: DataFrame with 'filename' column
+            image_folder: Path to folder containing images
+
+        Returns:
+            Filtered DataFrame with only existing files
+        """
+        existing_mask = []
+
+        for _, row in df.iterrows():
+            existing_mask.append((image_folder / row['filename']).exists())
+
+        df_filtered = df[existing_mask].copy()
+        removed_count_image = len(df['filename'].unique()) - len(df_filtered['filename'].unique())
+        removed_count_rows = len(df['filename']) - len(df_filtered['filename'])
+
+        if removed_count_image > 0:
+            logger.info(f"⚠ Removed {removed_count_image} image with missing files on the {dataset_type} dataset")
+            logger.info(f"(correspond to {removed_count_rows} rows on the {dataset_type} dataset)")
+            logger.info(df[~df.index.isin(df_filtered.index)]['filename'].unique())
+        else:
+            logger.info(f"✓ No missing files on the {dataset_type} dataset")
+
+        return df_filtered
+
+    def verify_and_fix(self):
+        """
+        Fix dimension problem and verify if the file exist (ifnot, delete the lines)
+
+        Modifies:
+            self.df_train
+            self.df_test
+        """
+        self.df_train = self._fix_zero_dimensions(self.df_train, self.config.train_images_dir, "train")
+        self.df_train = self._verify_files_exist(self.df_train, self.config.train_images_dir, "train")
+
+        self.df_test = self._fix_zero_dimensions(self.df_test, self.config.test_images_dir, "test")
+        self.df_test = self._verify_files_exist(self.df_test, self.config.test_images_dir, "test")
+
+        logger.info(
+            f"✓ Validated: {len(self.df_train)} rows on the train dataset "
+            f"and {len(self.df_test)} rows on the test dataset")
+
+    def _extract_species(self, text: str):
+        """
+        Extract plant species from text.
+
+        Args:
+            text: Class label text
+
+        Returns:
+            Species name or None if not found
+        """
+        for plant in self.config.plant_species:
+            if re.search(rf"\b{plant}\b", text, flags=re.IGNORECASE):
+                return plant
+        return None
+
+    def _extract_disease(self, text: str):
+        """
+        Extract disease name from text by removing species name.
+
+        Args:
+            text: Class label text
+
+        Returns:
+            Disease name or "healthy" if no disease
+        """
+        for plant in self.config.plant_species:
+            text = re.sub(rf"\b{plant}\b", "", text, flags=re.IGNORECASE).strip()
+
+        # Normalize to title case to avoid duplicates
+        return text.title() if text else "healthy"
+
+    def add_features(self):
+        """
+        Add 'species' and 'disease' columns to train and test DataFrame.
+
+        Modified:
+            self.df_train
+            self.df_test
+        """
+        self.df_train['species'] = self.df_train['class'].apply(self._extract_species)
+        self.df_train['disease'] = self.df_train['class'].apply(self._extract_disease)
+
+        self.df_test['species'] = self.df_test['class'].apply(self._extract_species)
+        self.df_test['disease'] = self.df_test['class'].apply(self._extract_disease)
+
+        logger.info(f"✓ Features extracted for the train and test dataset (species, disease)")
+
+    def load_clean_extract_fix_verify(self):
+        """
+        Load, clean, extract features, fix, and validate data pipeline.
+
+        This method orchestrates the complete data preparation workflow:
+        1. Load train and test CSV files
+        2. Clean class names
+        3. Extract features by creating two columns : species and diseases
+        4. Fix zero dimensions by reading actual images
+        5. Verify and remove rows with missing image files
+
+        Modifies:
+            self.df_train: Loaded, cleaned, and validated training DataFrame
+            self.df_test: Loaded, cleaned, and validated test DataFrame
+        """
+
+        logger.info(f"\n{'='*60}")
+        logger.info(f"LOADING AND PREPARING DATA")
+        logger.info(f"{'='*60}\n")
+
+        # Step 1: Load data
+        self.load_data()
+
+        # Step 2: Clean class names
+        self.clean_data()
+
+        # Step 3 : Extract features
+        self.add_features()
+
+        # Step 3: Fix dimensions and verify files
+        self.verify_and_fix()
+
+        logger.info(f"\n{'='*60}")
+        logger.info(f"DATA PREPARATION COMPLETE")
+        logger.info(f"{'='*60}\n")
 
     @abstractmethod
     def filter_data(self):
         """
         Filter data based on pipeline-specific criteria.
-        Must be implemented by subclasses.
         """
-        pass
+        raise NotImplementedError("Subclasses must implement the 'filter_data' method.")
 
     @abstractmethod
     def balance_data(self):
         """
         Balance data for training.
-        Must be implemented by subclasses.
         """
-        pass
+        raise NotImplementedError("Subclasses must implement the 'balance_data' method.")
 
     @abstractmethod
     def get_class_column(self) -> str:
         """
         Get the column name used for classification.
-        Must be implemented by subclasses.
 
         Returns:
             Column name (e.g., 'binary_class', 'species', 'disease')
         """
-        pass
+        raise NotImplementedError("Subclasses must implement the 'get_class_column' method.")
 
     @abstractmethod
     def get_pipeline_type(self) -> str:
         """
         Get pipeline type identifier.
-        Must be implemented by subclasses.
 
         Returns:
             Pipeline type ('binary', 'species', or 'disease')
         """
-        pass
+        raise NotImplementedError("Subclasses must implement the 'get_pipeline_type' method.")
 
     def create_class_mapping(self) -> Dict[str, int]:
         """

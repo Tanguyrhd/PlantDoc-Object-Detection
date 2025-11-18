@@ -1,8 +1,3 @@
-"""
-Pipeline Configuration
-Centralized configuration for all data pipelines.
-"""
-
 import os
 from pathlib import Path
 from typing import List

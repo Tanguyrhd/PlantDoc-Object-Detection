@@ -1,7 +1,6 @@
-"""
-Binary Pipeline
-Pipeline for binary classification (Healthy vs Disease).
-"""
+import logging
+
+logger = logging.getLogger(__name__)
 
 import pandas as pd
 from .base_pipeline import BasePipeline
@@ -31,6 +30,12 @@ balance_data
 
 class BinaryPipeline(BasePipeline):
     """Pipeline for binary classification: healthy (0) vs disease (1)."""
+
+    # def __init__(
+    #     self,
+    #     pipeline_type='binary'):
+
+    #     self.pipeline_type = pipeline_type
 
     def get_pipeline_type(self) -> str:
         """Get pipeline type identifier."""
