@@ -6,6 +6,28 @@ Pipeline for plant species classification.
 import pandas as pd
 from .base_pipeline import BasePipeline
 
+"""
+To do here:
+- If you make the changes that I outlined in the `base_pipeline.py` some changes will be necessary in your classes here. I'll let you figure it out.
+
+- Add beter type hints in the docstrings & explain what comes out
+    - I should be able to not only understand what the method/class does from the docstrings, but also what comes in and what comes out
+        - if the only input is self, you don't need to mention it.
+
+- Take a look at print vs logging
+"""
+
+"""
+Structure:
+get_pipeline_type
+- Could be a __init__ arg instead of a method
+
+get_class_column
+- Could be a __init__ arg instead of a method
+
+balance_data
+- Could be in the main class, it is the same everywhere execpt a few args
+"""
 
 class SpeciesPipeline(BasePipeline):
     """Pipeline for species classification (includes both healthy and diseased plants)."""

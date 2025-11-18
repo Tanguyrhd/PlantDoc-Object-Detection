@@ -9,6 +9,17 @@ import pandas as pd
 from pathlib import Path
 from typing import Dict, Tuple
 
+"""
+To do here:
+- Why is this a class?
+    - When should we make a class vs a module?
+
+- Add beter type hints in the docstrings & explain what comes out
+    - I should be able to not only understand what the method/class does from the docstrings, but also what comes in and what comes out
+        - if the only input is self, you don't need to mention it.
+
+- Take a look at print vs logging
+"""
 
 class YOLOConverter:
     """Converts and exports data to YOLO format."""
