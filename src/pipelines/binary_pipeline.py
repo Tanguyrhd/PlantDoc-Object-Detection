@@ -4,152 +4,66 @@ logger = logging.getLogger(__name__)
 
 import pandas as pd
 from .base_pipeline import BasePipeline
-
-"""
-To do here:
-- If you make the changes that I outlined in the `base_pipeline.py` some changes will be necessary in your classes here. I'll let you figure it out.
-
-- Add beter type hints in the docstrings & explain what comes out
-    - I should be able to not only understand what the method/class does from the docstrings, but also what comes in and what comes out
-        - if the only input is self, you don't need to mention it.
-
-- Take a look at print vs logging
-"""
-
-"""
-Structure:
-get_pipeline_type
-- Could be a __init__ arg instead of a method
-
-get_class_column
-- Could be a __init__ arg instead of a method
-
-balance_data
-- Could be in the main class, it is the same everywhere execpt a few args
-"""
+from ..config import PipelineConfig
 
 class BinaryPipeline(BasePipeline):
-    """Pipeline for binary classification: healthy (0) vs disease (1)."""
+    """
+    Binary classification pipeline: healthy (0) vs diseased (1).
 
-    # def __init__(
-    #     self,
-    #     pipeline_type='binary'):
+    Extends BasePipeline to create a binary classifier by grouping all diseases
+    into a single "diseased" class. This is useful for initial disease screening
+    before multi-class classification.
 
-    #     self.pipeline_type = pipeline_type
+    Args:
+        config: Pipeline configuration
+        pipeline_type: Pipeline identifier for output paths (default: 'binary')
+        class_column: DataFrame column name for binary labels (default: 'binary_class')
 
-    def get_pipeline_type(self) -> str:
-        """Get pipeline type identifier."""
-        return 'binary'
+    Attributes:
+        pipeline_type: String identifier ('binary')
+        class_column: Column containing 0 (healthy) or 1 (diseased) labels
+    """
 
-    def get_class_column(self) -> str:
-        """Get the column name used for classification."""
-        return 'binary_class'
+    def __init__(
+            self,
+            config: PipelineConfig,
+            pipeline_type='binary',
+            class_column='binary_class'):
+
+        super().__init__(config)
+        self.pipeline_type = pipeline_type
+        self.class_column = class_column
 
     def filter_data(self):
         """
         Create binary labels: 0 = healthy, 1 = disease.
-        No filtering needed - we keep all samples.
+
+        Modified:
+            self.df_train
+            self.df_test
         """
-        print(f"\n{'='*60}")
-        print(f"CREATING BINARY LABELS")
-        print(f"{'='*60}\n")
+        logger.info(f"\n{'='*60}")
+        logger.info(f"CREATING BINARY LABELS")
+        logger.info(f"{'='*60}\n")
 
         # Create binary class column
-        self.df_train['binary_class'] = (self.df_train['disease'] != 'healthy').astype(int)
-        self.df_test['binary_class'] = (self.df_test['disease'] != 'healthy').astype(int)
+        self.df_train[self.class_column] = (self.df_train['disease'] != 'healthy').astype(int)
+        self.df_test[self.class_column] = (self.df_test['disease'] != 'healthy').astype(int)
 
         # Show distribution
-        healthy_train = (self.df_train['binary_class'] == 0).sum()
-        disease_train = (self.df_train['binary_class'] == 1).sum()
+        healthy_train = (self.df_train[self.class_column] == 0).sum()
+        disease_train = (self.df_train[self.class_column] == 1).sum()
 
-        healthy_test = (self.df_test['binary_class'] == 0).sum()
-        disease_test = (self.df_test['binary_class'] == 1).sum()
+        healthy_test = (self.df_test[self.class_column] == 0).sum()
+        disease_test = (self.df_test[self.class_column] == 1).sum()
 
-        print(f"Training set:")
-        print(f"  Class 0 (Healthy): {healthy_train} samples")
-        print(f"  Class 1 (Disease): {disease_train} samples")
-        print(f"  Ratio: {healthy_train/disease_train:.2f}:1 (Healthy:Disease)")
+        logger.info(f"Training set:")
+        logger.info(f"  Class 0 (Healthy): {healthy_train} samples")
+        logger.info(f"  Class 1 (Disease): {disease_train} samples")
+        logger.info(f"  Ratio: {healthy_train/disease_train:.2f}:1 (Healthy:Disease)")
 
-        print(f"\nValidation set:")
-        print(f"  Class 0 (Healthy): {healthy_test} samples")
-        print(f"  Class 1 (Disease): {disease_test} samples")
+        logger.info(f"\nValidation set:")
+        logger.info(f"  Class 0 (Healthy): {healthy_test} samples")
+        logger.info(f"  Class 1 (Disease): {disease_test} samples")
 
-        print(f"\n✓ Binary labels created")
-
-    def balance_data(self, interactive: bool = True) -> None:
-        """
-        Balance the dataset by letting user choose to balance with a specific target or keep the natural balanced
-
-        Args:
-            interactive: If True, ask user for target samples. If False, use default.
-        """
-        print(f"\n{'='*60}")
-        print("PREPARING DATASETS")
-        print(f"{'='*60}\n")
-
-        # Ask user for balancing choice
-
-        distribution = self.df_train['binary_class'].value_counts().sort_index()
-        apply_balancing = False
-
-        if interactive:
-            print(f"\n{'-'*60}")
-            print("BALANCING OPTIONS")
-            print(f"{'-'*60}")
-            print("Do you want to balance the training dataset?")
-            print("  1. Yes, with custom target")
-            print("  2. No, keep natural distribution")
-
-            while True:
-                choice = input("\nMake a choice between 1 and 2: ").strip()
-
-                if choice == "1":
-                    apply_balancing = True
-                    while True:
-                        try:
-                            target_samples = int(input("Enter target samples per class: "))
-                            max_possible = distribution.min()
-                            if target_samples > max_possible:
-                                print(f"⚠️  Warning: Maximum possible is {max_possible} (minority class size)")
-                                print(f"   Using undersampling will limit to {max_possible} per class")
-                                confirm = input(f"Continue with {target_samples}? (y/n): ").strip().lower()
-                                if confirm == 'y':
-                                    break
-                            elif target_samples > 0:
-                                break
-                            else:
-                                print("⚠️  Please enter a positive number")
-                        except ValueError:
-                            print("⚠️  Please enter a valid number")
-                    break
-                elif choice == '2':
-                    apply_balancing = False
-                    break
-                else:
-                    print("⚠️  Please enter a valid choice between 1 and 2")
-
-        # Apply balancing if requested
-        if apply_balancing:
-            print(f"\n Balancing training dataset to {target_samples} samples per class...")
-            self.df_train_processed = self.balancer.balance_by_column(
-                self.df_train,
-                column='binary_class',
-                target_samples_per_class=target_samples
-            )
-
-            # Show new distribution
-            new_distribution = self.df_train_processed['binary_class'].value_counts().sort_index()
-            print("\n📊 Training set - Balanced distribution:")
-            for label, count in new_distribution.items():
-                label_name = "Healthy" if label == 0 else "Diseased"
-                percentage = (count / len(self.df_train_processed)) * 100
-                print(f"  {label_name:12} (label {label}): {count:5} samples ({percentage:5.1f}%)")
-
-            print(f"\n  Total training: {len(self.df_train_processed)} samples")
-            print("✓ Training dataset balanced successfully")
-        else:
-            print("\n✓ Keeping natural distribution (no balancing)")
-            self.df_train_processed = self.df_train.copy()
-
-        # Test set is never balanced
-        self.df_test_processed = self.df_test.copy()
+        logger.info(f"\n✓ Binary labels created")
