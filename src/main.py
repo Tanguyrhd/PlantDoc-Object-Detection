@@ -2,6 +2,9 @@
 Main Pipeline Orchestrator
 Run all three pipelines from A to Z.
 """
+from src.utils.logging_config import setup_logging
+
+setup_logging()
 
 import argparse
 from pathlib import Path
