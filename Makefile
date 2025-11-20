@@ -12,7 +12,6 @@ help:
 	@echo ""
 	@echo "Environment Setup:"
 	@echo "  make install          Install Python dependencies"
-	@echo "  make install-dev      Install with development tools"
 	@echo "  make check-env        Check if .env file is configured"
 	@echo "  make setup            Install + check environment"
 	@echo ""
@@ -28,13 +27,6 @@ help:
 	@echo "  make run-species      Run species classification pipeline"
 	@echo "  make run-all          Run all three pipelines sequentially"
 	@echo ""
-	@echo "Testing (Step by Step):"
-	@echo "  make test-config      Test configuration loading only"
-	@echo "  make test-binary      Test binary pipeline step by step"
-	@echo "  make test-species     Test species pipeline step by step"
-	@echo "  make test-diseases    Test disease pipeline step by step"
-	@echo "  make test-all         Test all pipelines step by step"
-	@echo ""
 	@echo "Information:"
 	@echo "  make info             Show dataset information and stats"
 	@echo ""
@@ -47,11 +39,6 @@ install:
 	@echo "📦 Installing Python dependencies..."
 	pip install -r requirements.txt
 	@echo "✅ Dependencies installed!"
-
-install-dev: install
-	@echo "📦 Installing development tools..."
-	pip install jupyter notebook ipykernel pytest
-	@echo "✅ Development environment ready!"
 
 check-env:
 	@echo "🔍 Checking environment configuration..."
@@ -73,27 +60,30 @@ setup: install check-env
 # ====== CLEAN OPERATIONS ======
 
 clean-binary:
-	@echo "🧹 Cleaning binary classification dataset..."
+	@echo "Cleaning binary classification dataset..."
 	@if [ -d "dataset/binary" ]; then \
 		rm -rf dataset/binary; \
-		echo "✅ Removed dataset/binary"; \
+		rm -rf dataset/binary.zip; \
+		echo "✅ Removed dataset/binary and zip file associated"; \
 	else \
 		echo "ℹ️  dataset/binary does not exist"; \
 	fi
 
 clean-diseases:
-	@echo "🧹 Cleaning disease classification dataset..."
+	@echo "Cleaning disease classification dataset..."
 	@if [ -d "dataset/diseases" ]; then \
 		rm -rf dataset/diseases; \
+		rm -rf dataset/diseases.zip; \
 		echo "✅ Removed dataset/diseases"; \
 	else \
 		echo "ℹ️  dataset/diseases does not exist"; \
 	fi
 
 clean-species:
-	@echo "🧹 Cleaning species classification dataset..."
+	@echo "Cleaning species classification dataset..."
 	@if [ -d "dataset/species" ]; then \
 		rm -rf dataset/species; \
+		rm -rf dataset/species.zip; \
 		echo "✅ Removed dataset/species"; \
 	else \
 		echo "ℹ️  dataset/species does not exist"; \
@@ -101,28 +91,6 @@ clean-species:
 
 clean-all: clean-binary clean-diseases clean-species
 	@echo "✅ All datasets cleaned!"
-
-# ====== TESTING (Step by Step) ======
-
-test-config:
-	@echo "🧪 Testing configuration loading..."
-	python test_pipeline.py
-
-test-binary: check-env
-	@echo "🧪 Testing binary classification pipeline (step by step)..."
-	python -c "from test_pipeline import *; config = test_config(); test_binary_pipeline(config)"
-
-test-species: check-env
-	@echo "🧪 Testing species classification pipeline (step by step)..."
-	python -c "from test_pipeline import *; config = test_config(); test_species_pipeline(config)"
-
-test-diseases: check-env
-	@echo "🧪 Testing disease classification pipeline (step by step)..."
-	python -c "from test_pipeline import *; config = test_config(); test_disease_pipeline(config)"
-
-test-all: check-env
-	@echo "🧪 Testing all pipelines (step by step)..."
-	python -c "from test_pipeline import *; config = test_config(); test_binary_pipeline(config); test_species_pipeline(config); test_disease_pipeline(config)"
 
 # ====== PIPELINE EXECUTION (Production) ======
 

@@ -1,52 +1,94 @@
 """
-Species Pipeline
-Pipeline for plant species classification.
+Species Multi-Class Classification Pipeline
+
+Pipeline for training YOLO models to classify different plant species.
+Includes both healthy and diseased plants from all species.
+
+Filtering Strategy:
+-------------------
+1. Remove samples with missing species information (species == None)
+2. Keep all samples regardless of disease status (healthy or diseased)
+3. Train on species identification across all plant types
+
+This pipeline is useful for identifying which plant species is present in an image,
+regardless of whether the plant is healthy or diseased.
+
+Example:
+--------
+    config = PipelineConfig()
+    pipeline = SpeciesPipeline(config)
+    pipeline.run()  # Interactive mode with balancing options
+
+    # Output: dataset/species/ with samples grouped by plant species
 """
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 import pandas as pd
 from .base_pipeline import BasePipeline
-
-"""
-To do here:
-- If you make the changes that I outlined in the `base_pipeline.py` some changes will be necessary in your classes here. I'll let you figure it out.
-
-- Add beter type hints in the docstrings & explain what comes out
-    - I should be able to not only understand what the method/class does from the docstrings, but also what comes in and what comes out
-        - if the only input is self, you don't need to mention it.
-
-- Take a look at print vs logging
-"""
-
-"""
-Structure:
-get_pipeline_type
-- Could be a __init__ arg instead of a method
-
-get_class_column
-- Could be a __init__ arg instead of a method
-
-balance_data
-- Could be in the main class, it is the same everywhere execpt a few args
-"""
+from ..config import PipelineConfig
 
 class SpeciesPipeline(BasePipeline):
-    """Pipeline for species classification (includes both healthy and diseased plants)."""
+    """
+    Multi-class species classification pipeline.
 
-    def get_pipeline_type(self) -> str:
-        """Get pipeline type identifier."""
-        return 'species'
+    Extends BasePipeline to create a species classifier that identifies plant species
+    regardless of health status (includes both healthy and diseased samples).
 
-    def get_class_column(self) -> str:
-        """Get the column name used for classification."""
-        return 'species'
+    Filtering includes:
+    - Removal of samples with missing species information (species == None)
+    - Keeps all disease states (healthy and diseased plants)
+
+    Args:
+        config: Pipeline configuration with species list
+        pipeline_type: Pipeline identifier for output paths (default: 'species')
+        class_column: DataFrame column name for species labels (default: 'species')
+
+    Attributes:
+        pipeline_type: String identifier ('species')
+        class_column: Column containing species class names
+
+    Example:
+        >>> config = PipelineConfig()
+        >>> config.plant_species = ['Tomato', 'Potato', 'Pepper']
+        >>> pipeline = SpeciesPipeline(config)
+        >>> pipeline.run()
+    """
+
+    def __init__(
+            self,
+            config: PipelineConfig,
+            pipeline_type='species',
+            class_column='species'):
+
+        super().__init__(config)
+        self.pipeline_type = pipeline_type
+        self.class_column = class_column
 
     def filter_data(self):
         """
-        Filter to keep only samples with valid species.
+        Filter dataset to keep only samples with valid species information.
+
+        Removes samples where species extraction failed (species == None), which can
+        occur when the class label doesn't match any species in config.plant_species.
+
+        Modifies:
+            self.df_train: Filtered to samples with valid species only
+            self.df_test: Filtered to samples with valid species only
+
+        Side Effects:
+            - Logs filtering statistics (kept vs removed samples)
+            - Logs species distribution to console
+
+        Example:
+            Before: 10,000 samples (9,500 with species + 500 with species=None)
+            After:  9,500 samples (only samples with identified species)
         """
-        print(f"\n{'='*60}")
-        print(f"FILTERING BY SPECIES")
-        print(f"{'='*60}\n")
+        logger.info(f"\n{'='*60}")
+        logger.info(f"FILTERING BY SPECIES")
+        logger.info(f"{'='*60}\n")
 
         # Keep only samples with valid species
         df_train_filtered = self.df_train[self.df_train['species'].notna()].copy()
@@ -55,92 +97,19 @@ class SpeciesPipeline(BasePipeline):
         removed_train = len(self.df_train) - len(df_train_filtered)
         removed_test = len(self.df_test) - len(df_test_filtered)
 
-        print(f"Training: {len(df_train_filtered)} samples (removed {removed_train})")
-        print(f"Validation: {len(df_test_filtered)} samples (removed {removed_test})")
+        logger.info(f"Training: {len(df_train_filtered)} samples (removed {removed_train})")
+        logger.info(f"Validation: {len(df_test_filtered)} samples (removed {removed_test})")
 
         # Update dataframes
         self.df_train = df_train_filtered
         self.df_test = df_test_filtered
 
         # Show species distribution
-        self.balancer.print_distribution(
-            self.df_train,
-            'species',
-            "Training species distribution (before balancing)"
-        )
+        counts = df_train_filtered['species'].value_counts().sort_index()
+        for label, count in counts.items():
+            percentage = (count / len(df_train_filtered)) * 100
+            logger.info(f"  {label:12}: {count:5} samples ({percentage:5.1f}%)")
 
-        print(f"\n✓ Filtering complete")
+        logger.info(f"\n  Total training: {len(df_train_filtered)} samples")
 
-    def balance_data(self, interactive: bool = True) -> None:
-        """
-        Balance the dataset by letting user choose to balance with a specific target or keep the natural balanced
-
-        Args:
-            interactive: If True, ask user for target samples. If False, use default.
-        """
-        print(f"\n{'='*60}")
-        print("PREPARING DATASETS")
-        print(f"{'='*60}\n")
-
-        # Ask user for balancing choice
-
-        distribution = self.df_train['species'].value_counts().sort_index()
-        apply_balancing = False
-
-        if interactive:
-            print(f"\n{'-'*60}")
-            print("BALANCING OPTIONS")
-            print(f"{'-'*60}")
-            print("Do you want to balance the training dataset?")
-            print("  1. Yes, with custom target")
-            print("  2. No, keep natural distribution")
-
-            while True:
-                choice = input("\nMake a choice between 1 and 2: ").strip()
-
-                if choice == "1":
-                    apply_balancing = True
-                    while True:
-                        try:
-                            target_samples = int(input("Enter target samples per class: "))
-                            max_possible = distribution.min() * 2
-                            if target_samples > max_possible:
-                                print(f"⚠️  Warning: Maximum possible is {max_possible} (minority class size)")
-                                print(f"   Using undersampling will limit to {max_possible} per class")
-                                confirm = input(f"Continue with {target_samples}? (y/n): ").strip().lower()
-                                if confirm == 'y':
-                                    break
-                            elif target_samples > 0:
-                                break
-                            else:
-                                print("⚠️  Please enter a positive number")
-                        except ValueError:
-                            print("⚠️  Please enter a valid number")
-                    break
-                elif choice == '2':
-                    apply_balancing = False
-                    break
-                else:
-                    print("⚠️  Please enter a valid choice between 1 and 2")
-
-        # Apply balancing if requested
-        if apply_balancing:
-            print(f"\n Balancing training dataset to {target_samples} samples per class...")
-            self.df_train_processed = self.balancer.balance_by_column(
-                self.df_train,
-                column='species',
-                target_samples_per_class=target_samples
-            )
-
-            self.balancer.print_distribution(
-            self.df_train_processed,
-            'species',
-            "Training species distribution (after balancing)"
-            )
-            print("✓ Training dataset balanced successfully")
-        else:
-            print("\n✓ Keeping natural distribution (no balancing)")
-            self.df_train_processed = self.df_train.copy()
-
-        # Test set is never balanced
-        self.df_test_processed = self.df_test.copy()
+        logger.info(f"\n✓ Filtering complete")

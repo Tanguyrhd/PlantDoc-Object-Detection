@@ -1,59 +1,109 @@
 """
-Disease Pipeline
-Pipeline for multi-class disease classification.
+Disease Multi-Class Classification Pipeline
+
+Pipeline for training YOLO models to classify different plant diseases.
+Excludes healthy plants and filters out rare/problematic diseases based on
+configuration thresholds.
+
+Filtering Strategy:
+-------------------
+1. Remove all healthy samples (disease == 'healthy')
+2. Remove rare diseases below threshold (default: 0.1% of dataset)
+3. Remove manually excluded diseases from config.excluded_diseases
+4. Train only on remaining disease classes
+
+This pipeline is useful for detailed disease identification after an initial
+binary screening (healthy vs diseased).
+
+Example:
+--------
+    config = PipelineConfig()
+    pipeline = DiseasePipeline(config)
+    pipeline.run()  # Interactive mode with balancing options
+
+    # Output: dataset/diseases/ with only disease samples
 """
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 import pandas as pd
 from .base_pipeline import BasePipeline
+from ..config import PipelineConfig
 
-"""
-To do here:
-- If you make the changes that I outlined in the `base_pipeline.py` some changes will be necessary in your classes here. I'll let you figure it out.
-
-- Add beter type hints in the docstrings & explain what comes out
-    - I should be able to not only understand what the method/class does from the docstrings, but also what comes in and what comes out
-        - if the only input is self, you don't need to mention it.
-
-- Take a look at print vs logging
-"""
-
-"""
-Structure:
-get_pipeline_type
-- Could be a __init__ arg instead of a method
-
-get_class_column
-- Could be a __init__ arg instead of a method
-
-balance_data
-- Could be in the main class, it is the same everywhere execpt a few args
-"""
 class DiseasePipeline(BasePipeline):
-    """Pipeline for disease classification (excludes healthy plants)."""
+    """
+    Multi-class disease classification pipeline.
 
-    def get_pipeline_type(self) -> str:
-        """Get pipeline type identifier."""
-        return 'disease'
+    Extends BasePipeline to create a disease-only classifier by removing healthy
+    plants and filtering rare or problematic disease classes.
 
-    def get_class_column(self) -> str:
-        """Get the column name used for classification."""
-        return 'disease'
+    Filtering includes:
+    - Removal of all healthy samples
+    - Rare diseases below config.rare_disease_threshold (default: 0.1%)
+    - Manually excluded diseases from config.excluded_diseases
+
+    Args:
+        config: Pipeline configuration with disease filtering parameters
+        pipeline_type: Pipeline identifier for output paths (default: 'disease')
+        class_column: DataFrame column name for disease labels (default: 'disease')
+
+    Attributes:
+        pipeline_type: String identifier ('disease')
+        class_column: Column containing disease class names
+
+    Example:
+        >>> config = PipelineConfig()
+        >>> config.rare_disease_threshold = 0.001  # 0.1%
+        >>> config.excluded_diseases = ['Blight', 'Mold']
+        >>> pipeline = DiseasePipeline(config)
+        >>> pipeline.run()
+    """
+
+    def __init__(
+            self,
+            config: PipelineConfig,
+            pipeline_type='disease',
+            class_column='disease'):
+
+        super().__init__(config)
+        self.pipeline_type = pipeline_type
+        self.class_column = class_column
 
     def filter_data(self):
         """
-        Filter out healthy samples and rare/excluded diseases.
+        Filter dataset to include only valid disease samples.
+
+        Performs a multi-step filtering process:
+        1. Remove all healthy samples (disease != 'healthy')
+        2. Identify rare diseases below config.rare_disease_threshold
+        3. Combine rare diseases with config.excluded_diseases
+        4. Remove all excluded diseases from train and test sets
+
+        Modifies:
+            self.df_train: Filtered to disease samples only (excludes healthy + rare/excluded)
+            self.df_test: Filtered to disease samples only
+
+        Side Effects:
+            - Logs filtering statistics (removed samples, disease distribution)
+            - Prints final disease distribution to console
+
+        Example:
+            Before: 10,000 samples (2,000 healthy + 8,000 diseased with 50 disease classes)
+            After:  7,500 samples (only 30 most common disease classes)
         """
-        print(f"\n{'='*60}")
-        print(f"FILTERING DISEASE SAMPLES")
-        print(f"{'='*60}\n")
+        logger.info(f"\n{'='*60}")
+        logger.info(f"FILTERING DISEASE SAMPLES")
+        logger.info(f"{'='*60}\n")
 
         # Step 1: Filter out healthy samples
         df_diseases_train = self.df_train[self.df_train['disease'] != 'healthy'].copy()
         df_diseases_test = self.df_test[self.df_test['disease'] != 'healthy'].copy()
 
-        print(f"After removing healthy samples:")
-        print(f"  Training: {len(df_diseases_train)} disease samples")
-        print(f"  Validation: {len(df_diseases_test)} disease samples")
+        logger.info(f"After removing healthy samples:")
+        logger.info(f"  Training: {len(df_diseases_train)} disease samples")
+        logger.info(f"  Validation: {len(df_diseases_test)} disease samples")
 
         # Step 2: Identify and remove rare diseases
         disease_proportions = df_diseases_train['disease'].value_counts(normalize=True)
@@ -61,19 +111,19 @@ class DiseasePipeline(BasePipeline):
             disease_proportions < self.config.rare_disease_threshold
         ].index.tolist()
 
-        print(f"\nRare diseases (< {self.config.rare_disease_threshold*100}%):")
+        logger.info(f"\nRare diseases (< {self.config.rare_disease_threshold*100}%):")
         for disease in rare_diseases:
             count = len(df_diseases_train[df_diseases_train['disease'] == disease])
-            print(f"  {disease}: {count} samples")
+            logger.info(f"  {disease}: {count} samples")
 
         # Step 3: Combine rare and manually excluded diseases
         all_excluded = list(set(rare_diseases + self.config.excluded_diseases))
 
-        print(f"\nManually excluded diseases:")
+        logger.info(f"\nManually excluded diseases:")
         for disease in self.config.excluded_diseases:
-            print(f"  {disease}")
+            logger.info(f"  {disease}")
 
-        print(f"\nAll excluded diseases: {all_excluded}")
+        logger.info(f"\nAll excluded diseases: {all_excluded}")
 
         # Step 4: Remove excluded diseases
         df_diseases_clean_train = df_diseases_train[
@@ -84,93 +134,20 @@ class DiseasePipeline(BasePipeline):
             ~df_diseases_test['disease'].isin(all_excluded)
         ].copy()
 
-        print(f"\nAfter removing rare and excluded diseases:")
-        print(f"  Training: {len(df_diseases_clean_train)} samples")
-        print(f"  Validation: {len(df_diseases_clean_test)} samples")
+        logger.info(f"\nAfter removing rare and excluded diseases:")
+        logger.info(f"  Training: {len(df_diseases_clean_train)} samples")
+        logger.info(f"  Validation: {len(df_diseases_clean_test)} samples")
 
         # Update dataframes
         self.df_train = df_diseases_clean_train
         self.df_test = df_diseases_clean_test
 
         # Show disease distribution
-        self.balancer.print_distribution(
-            self.df_train,
-            'disease',
-            "Training disease distribution (before balancing)"
-        )
+        counts = df_diseases_clean_train['disease'].value_counts().sort_index()
+        for label, count in counts.items():
+            percentage = (count / len(df_diseases_clean_train)) * 100
+            logger.info(f"  {label:12}: {count:5} samples ({percentage:5.1f}%)")
 
-        print(f"\n✓ Filtering complete")
+        logger.info(f"\n  Total training: {len(df_diseases_clean_train)} samples")
 
-    def balance_data(self, interactive: bool = True) -> None:
-        """
-        Balance the dataset by letting user choose to balance with a specific target or keep the natural balanced
-
-        Args:
-            interactive: If True, ask user for target samples. If False, use default.
-        """
-        print(f"\n{'='*60}")
-        print("PREPARING DATASETS")
-        print(f"{'='*60}\n")
-
-        # Ask user for balancing choice
-
-        distribution = self.df_train['disease'].value_counts().sort_index()
-        apply_balancing = False
-
-        if interactive:
-            print(f"\n{'-'*60}")
-            print("BALANCING OPTIONS")
-            print(f"{'-'*60}")
-            print("Do you want to balance the training dataset?")
-            print("  1. Yes, with custom target")
-            print("  2. No, keep natural distribution")
-
-            while True:
-                choice = input("\nMake a choice between 1 and 2: ").strip()
-
-                if choice == "1":
-                    apply_balancing = True
-                    while True:
-                        try:
-                            target_samples = int(input("Enter target samples per class: "))
-                            max_possible = distribution.min() * 2
-                            if target_samples > max_possible:
-                                print(f"⚠️  Warning: Maximum possible is {max_possible} (minority class size)")
-                                print(f"   Using undersampling will limit to {max_possible} per class")
-                                confirm = input(f"Continue with {target_samples}? (y/n): ").strip().lower()
-                                if confirm == 'y':
-                                    break
-                            elif target_samples > 0:
-                                break
-                            else:
-                                print("⚠️  Please enter a positive number")
-                        except ValueError:
-                            print("⚠️  Please enter a valid number")
-                    break
-                elif choice == '2':
-                    apply_balancing = False
-                    break
-                else:
-                    print("⚠️  Please enter a valid choice between 1 and 2")
-
-        # Apply balancing if requested
-        if apply_balancing:
-            print(f"\n Balancing training dataset to {target_samples} samples per class...")
-            self.df_train_processed = self.balancer.balance_by_column(
-                self.df_train,
-                column='disease',
-                target_samples_per_class=target_samples
-            )
-
-            self.balancer.print_distribution(
-            self.df_train_processed,
-            'disease',
-            "Training disease distribution (after balancing)"
-            )
-            print("✓ Training dataset balanced successfully")
-        else:
-            print("\n✓ Keeping natural distribution (no balancing)")
-            self.df_train_processed = self.df_train.copy()
-
-        # Test set is never balanced
-        self.df_test_processed = self.df_test.copy()
+        logger.info(f"\n✓ Filtering complete")
