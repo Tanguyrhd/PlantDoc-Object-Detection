@@ -6,20 +6,14 @@ from src.utils.logging_config import setup_logging
 
 setup_logging()
 
+import logging
+logger = logging.getLogger(__name__)
+
 import argparse
 from pathlib import Path
 
 from .config import PipelineConfig
 from .pipelines import BinaryPipeline, SpeciesPipeline, DiseasePipeline
-
-"""
-To do here:
-- Add beter type hints in the docstrings & explain what comes out
-    - I should be able to not only understand what the method/class does from the docstrings, but also what comes in and what comes out
-        - if the only input is self, you don't need to mention it.
-
-- Take a look at print vs logging
-"""
 
 def run_all_pipelines(config: PipelineConfig):
     """
@@ -28,35 +22,35 @@ def run_all_pipelines(config: PipelineConfig):
     Args:
         config: Pipeline configuration
     """
-    print("\n" + "="*80)
-    print(" "*20 + "PLANTDOC DATASET PIPELINE")
-    print("="*80)
+    logger.info("\n" + "="*80)
+    logger.info(" "*20 + "PLANTDOC DATASET PIPELINE")
+    logger.info("="*80)
 
     # Pipeline 1: Binary Classification (Healthy vs Disease)
-    print("\n[1/3] Running Binary Pipeline...")
+    logger.info("\n[1/3] Running Binary Pipeline...")
     binary_pipeline = BinaryPipeline(config)
     binary_pipeline.run()
 
     # Pipeline 2: Species Classification
-    print("\n[2/3] Running Species Pipeline...")
+    logger.info("\n[2/3] Running Species Pipeline...")
     species_pipeline = SpeciesPipeline(config)
     species_pipeline.run()
 
     # Pipeline 3: Disease Classification
-    print("\n[3/3] Running Disease Pipeline...")
+    logger.info("\n[3/3] Running Disease Pipeline...")
     disease_pipeline = DiseasePipeline(config)
     disease_pipeline.run()
 
     # Summary
-    print("\n" + "="*80)
-    print(" "*20 + "ALL PIPELINES COMPLETE!")
-    print("="*80)
-    print("\nGenerated datasets:")
-    print(f"  1. Binary:  {config.binary_output_dir}")
-    print(f"  2. Species: {config.species_output_dir}")
-    print(f"  3. Disease: {config.disease_output_dir}")
-    print("\nYou can now train YOLO models using the dataset.yaml files in each directory.")
-    print("="*80 + "\n")
+    logger.info("\n" + "="*80)
+    logger.info(" "*20 + "ALL PIPELINES COMPLETE!")
+    logger.info("="*80)
+    logger.info("\nGenerated datasets:")
+    logger.info(f"  1. Binary:  {config.binary_output_dir}")
+    logger.info(f"  2. Species: {config.species_output_dir}")
+    logger.info(f"  3. Disease: {config.disease_output_dir}")
+    logger.info("\nYou can now train YOLO models using the dataset.yaml files in each directory.")
+    logger.info("="*80 + "\n")
 
 
 def run_single_pipeline(pipeline_type: str, config: PipelineConfig):

@@ -96,17 +96,17 @@ clean-all: clean-binary clean-diseases clean-species
 
 run-binary: check-env
 	@echo "🚀 Running binary classification pipeline..."
-	python -c "from src.config import PipelineConfig; from src.pipelines import BinaryPipeline; pipeline = BinaryPipeline(PipelineConfig()); pipeline.run()"
+	python -c "from src.utils.logging_config import setup_logging; setup_logging(); from src.config import PipelineConfig; from src.pipelines import BinaryPipeline; pipeline = BinaryPipeline(PipelineConfig()); pipeline.run()"
 	@echo "✅ Binary pipeline completed! Output: dataset/binary/"
 
 run-species: check-env
 	@echo "🚀 Running species classification pipeline..."
-	python -c "from src.config import PipelineConfig; from src.pipelines import SpeciesPipeline; pipeline = SpeciesPipeline(PipelineConfig()); pipeline.run()"
+	python -c "from src.utils.logging_config import setup_logging; setup_logging();from src.config import PipelineConfig; from src.pipelines import SpeciesPipeline; pipeline = SpeciesPipeline(PipelineConfig()); pipeline.run()"
 	@echo "✅ Species pipeline completed! Output: dataset/species/"
 
 run-diseases: check-env
 	@echo "🚀 Running disease classification pipeline..."
-	python -c "from src.config import PipelineConfig; from src.pipelines import DiseasePipeline; pipeline = DiseasePipeline(PipelineConfig()); pipeline.run()"
+	python -c "from src.utils.logging_config import setup_logging; setup_logging();from src.config import PipelineConfig; from src.pipelines import DiseasePipeline; pipeline = DiseasePipeline(PipelineConfig()); pipeline.run()"
 	@echo "✅ Disease pipeline completed! Output: dataset/diseases/"
 
 run-all: check-env

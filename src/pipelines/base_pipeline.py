@@ -243,28 +243,24 @@ class BasePipeline(ABC):
         # Apply balancing if requested
         if apply_balancing:
             logger.info(f"\n Balancing training dataset to {target_samples} samples per class...")
-            self.df_train_processed = balance_by_column(
+            self.df_train = balance_by_column(
                 self.df_train,
                 column=self.class_column,
                 target_samples_per_class=target_samples
             )
 
             # Show new distribution
-            new_distribution = self.df_train_processed[self.class_column].value_counts().sort_index()
+            new_distribution = self.df_train[self.class_column].value_counts().sort_index()
             logger.info("\n📊 Training set - Balanced distribution:")
             for label, count in new_distribution.items():
                 label_name = "Healthy" if label == 0 else "Diseased"
-                percentage = (count / len(self.df_train_processed)) * 100
+                percentage = (count / len(self.df_train)) * 100
                 logger.info(f"  {label_name:12} (label {label}): {count:5} samples ({percentage:5.1f}%)")
 
-            logger.info(f"\n  Total training: {len(self.df_train_processed)} samples")
+            logger.info(f"\n  Total training: {len(self.df_train)} samples")
             logger.info("✓ Training dataset balanced successfully")
         else:
             logger.info("\n✓ Keeping natural distribution (no balancing)")
-            self.df_train_processed = self.df_train.copy()
-
-        # Test set is never balanced
-        self.df_test_processed = self.df_test.copy()
 
     @abstractmethod
     def filter_data(self):
