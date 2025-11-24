@@ -79,20 +79,20 @@ def main():
         description="PlantDoc Dataset Pipeline - Generate YOLO datasets for plant disease detection",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  # Run all three pipelines
-  python -m src.main --all
+            Examples:
+            # Run all three pipelines
+            python -m src.main --all
 
-  # Run only binary pipeline
-  python -m src.main --pipeline binary
+            # Run only binary pipeline
+            python -m src.main --pipeline binary
 
-  # Run only species pipeline
-  python -m src.main --pipeline species
+            # Run only species pipeline
+            python -m src.main --pipeline species
 
-  # Run only disease pipeline
-  python -m src.main --pipeline disease
-        """
-    )
+            # Run only disease pipeline
+            python -m src.main --pipeline disease
+                    """
+                )
 
     parser.add_argument(
         '--all',
