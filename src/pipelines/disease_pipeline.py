@@ -71,7 +71,7 @@ class DiseasePipeline(BasePipeline):
         self.pipeline_type = pipeline_type
         self.class_column = class_column
 
-    def filter_data(self):
+    def _filter_data(self):
         """
         Filter dataset to include only valid disease samples.
 
