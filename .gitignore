@@ -3,3 +3,10 @@ CLAUDE.md
 dataset/
 notebooks/
 .env
+# Models and weights
+*.pt
+*.pth
+*.pkl
+*.h5
+results/*
+*.zip

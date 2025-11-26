@@ -162,3 +162,28 @@ info:
 		echo "  Status: ❌ Not generated"; \
 	fi
 	@echo ""
+
+# ====== API ======
+
+run_api:
+	uvicorn taxifare.api.fast:app --reload
+
+	test_api_root:
+	pytest \
+	tests/api/test_endpoints.py::test_root_is_up --asyncio-mode=strict -W "ignore" \
+	tests/api/test_endpoints.py::test_root_returns_greeting --asyncio-mode=strict -W "ignore"
+
+test_api_predict:
+	pytest \
+	tests/api/test_endpoints.py::test_predict_is_up --asyncio-mode=strict -W "ignore" \
+	tests/api/test_endpoints.py::test_predict_is_dict --asyncio-mode=strict -W "ignore" \
+	tests/api/test_endpoints.py::test_predict_has_key --asyncio-mode=strict -W "ignore" \
+	tests/api/test_endpoints.py::test_predict_val_is_float --asyncio-mode=strict -W "ignore"
+
+test_api_on_docker:
+	pytest \
+	tests/api/test_docker_endpoints.py --asyncio-mode=strict -W "ignore"
+
+test_api_on_prod:
+	pytest \
+	tests/api/test_cloud_endpoints.py --asyncio-mode=strict -W "ignore"
