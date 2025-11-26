@@ -8,5 +8,5 @@ notebooks/
 *.pth
 *.pkl
 *.h5
-results/*/models/
+results/*
 *.zip
