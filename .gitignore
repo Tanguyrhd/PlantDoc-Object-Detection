@@ -10,3 +10,6 @@ notebooks/
 *.h5
 results/*
 *.zip
+__pycache__/
+*.pyc
+*.pyo
