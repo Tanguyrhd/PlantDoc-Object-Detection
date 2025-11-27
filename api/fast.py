@@ -12,7 +12,7 @@ import base64
 
 app = FastAPI()
 
-# Charger les trois modèles au démarrage de l'application
+# Load all three model at the beginning
 BASE_DIR = Path(__file__).resolve().parent.parent
 MODELS_DIR = BASE_DIR / "results"
 
@@ -25,10 +25,10 @@ def load_models():
     }
     return models
 
-# Stocker les modèles dans l'état de l'application
+# Save the model in app memory for faster use
 app.state.models = load_models()
 
-# Configuration CORS
+# CORS config
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allows all origins
@@ -45,7 +45,7 @@ def root():
     }
 
 async def predict_with_model(file: UploadFile, model: YOLO):
-    """Fonction générique pour faire des prédictions avec n'importe quel modèle"""
+    """Generic function to make the pred with a choosen model"""
     # Temp image save
     temp_path = f"/tmp/{file.filename}"
     with open(temp_path, "wb") as buffer:
@@ -74,7 +74,7 @@ async def predict_with_model(file: UploadFile, model: YOLO):
                 'bbox': box.xyxy[0].tolist()  # [x1, y1, x2, y2]
             })
 
-    # Nettoyer le fichier temporaire
+    # Clean the files
     os.remove(temp_path)
 
     return {
@@ -84,15 +84,15 @@ async def predict_with_model(file: UploadFile, model: YOLO):
 
 @app.post('/predict/binary')
 async def predict_binary(file: UploadFile = File(...)):
-    """Prédiction binaire : plante saine ou malade"""
+    """Binary predicrt : health or disease"""
     return await predict_with_model(file, app.state.models['binary'])
 
 @app.post('/predict/species')
 async def predict_species(file: UploadFile = File(...)):
-    """Prédiction de l'espèce de plante"""
+    """species pred"""
     return await predict_with_model(file, app.state.models['species'])
 
 @app.post('/predict/diseases')
 async def predict_diseases(file: UploadFile = File(...)):
-    """Prédiction des maladies de plante"""
+    """disease pred"""
     return await predict_with_model(file, app.state.models['diseases'])
