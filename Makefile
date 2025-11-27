@@ -173,18 +173,14 @@ run_api:
 	tests/api/test_endpoints.py::test_root_is_up --asyncio-mode=strict -W "ignore" \
 	tests/api/test_endpoints.py::test_root_returns_greeting --asyncio-mode=strict -W "ignore"
 
-test_api_on_docker:
-	pytest \
-	tests/api/test_docker_endpoints.py --asyncio-mode=strict -W "ignore"
-
-test_api_on_prod:
-	pytest \
-	tests/api/test_cloud_endpoints.py --asyncio-mode=strict -W "ignore"
 
 # Variables
 IMAGE_NAME = plantdoc-api
 CONTAINER_NAME = plantdoc-container
 PORT = 8000
+GCP_PROJECT_ID = plantdoc-479518
+GCP_REGION = europe-west1
+ARTIFACT_REGISTRY = europe-west1-docker.pkg.dev/$(GCP_PROJECT_ID)/plantdoc-repo
 
 # Build l'image Docker
 docker_build:
@@ -198,15 +194,17 @@ docker_run_local:
 docker_stop:
 	docker stop $(CONTAINER_NAME) && docker rm $(CONTAINER_NAME)
 
-# Pour le cloud (exemple avec Google Cloud Run)
+# Deploy sur Google Cloud Run avec Artifact Registry
 docker_deploy_cloud:
-	docker tag $(IMAGE_NAME) gcr.io/YOUR_PROJECT_ID/$(IMAGE_NAME)
-	docker push gcr.io/YOUR_PROJECT_ID/$(IMAGE_NAME)
+	docker tag $(IMAGE_NAME) $(ARTIFACT_REGISTRY)/$(IMAGE_NAME):latest
+	docker push $(ARTIFACT_REGISTRY)/$(IMAGE_NAME):latest
 	gcloud run deploy $(IMAGE_NAME) \
-		--image gcr.io/YOUR_PROJECT_ID/$(IMAGE_NAME) \
+		--image $(ARTIFACT_REGISTRY)/$(IMAGE_NAME):latest \
 		--platform managed \
-		--region europe-west1 \
-		--allow-unauthenticated
+		--region $(GCP_REGION) \
+		--allow-unauthenticated \
+		--memory 2Gi \
+		--cpu 2
 
 # Ou pour AWS ECR + ECS
 docker_deploy_aws:
