@@ -163,7 +163,7 @@ info:
 	fi
 	@echo ""
 
-# ====== API ======
+# ====== API & DOCKER ======
 
 run_api:
 	uvicorn api.fast:app --reload
@@ -173,13 +173,6 @@ run_api:
 	tests/api/test_endpoints.py::test_root_is_up --asyncio-mode=strict -W "ignore" \
 	tests/api/test_endpoints.py::test_root_returns_greeting --asyncio-mode=strict -W "ignore"
 
-test_api_predict:
-	pytest \
-	tests/api/test_endpoints.py::test_predict_is_up --asyncio-mode=strict -W "ignore" \
-	tests/api/test_endpoints.py::test_predict_is_dict --asyncio-mode=strict -W "ignore" \
-	tests/api/test_endpoints.py::test_predict_has_key --asyncio-mode=strict -W "ignore" \
-	tests/api/test_endpoints.py::test_predict_val_is_float --asyncio-mode=strict -W "ignore"
-
 test_api_on_docker:
 	pytest \
 	tests/api/test_docker_endpoints.py --asyncio-mode=strict -W "ignore"
@@ -187,3 +180,41 @@ test_api_on_docker:
 test_api_on_prod:
 	pytest \
 	tests/api/test_cloud_endpoints.py --asyncio-mode=strict -W "ignore"
+
+# Variables
+IMAGE_NAME = plantdoc-api
+CONTAINER_NAME = plantdoc-container
+PORT = 8000
+
+# Build l'image Docker
+docker_build:
+	docker build -t $(IMAGE_NAME) .
+
+# Test en local - run le container
+docker_run_local:
+	docker run -d -p $(PORT):$(PORT) --name $(CONTAINER_NAME) $(IMAGE_NAME)
+
+# Stop et remove le container local
+docker_stop:
+	docker stop $(CONTAINER_NAME) && docker rm $(CONTAINER_NAME)
+
+# Pour le cloud (exemple avec Google Cloud Run)
+docker_deploy_cloud:
+	docker tag $(IMAGE_NAME) gcr.io/YOUR_PROJECT_ID/$(IMAGE_NAME)
+	docker push gcr.io/YOUR_PROJECT_ID/$(IMAGE_NAME)
+	gcloud run deploy $(IMAGE_NAME) \
+		--image gcr.io/YOUR_PROJECT_ID/$(IMAGE_NAME) \
+		--platform managed \
+		--region europe-west1 \
+		--allow-unauthenticated
+
+# Ou pour AWS ECR + ECS
+docker_deploy_aws:
+	aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin YOUR_ACCOUNT_ID.dkr.ecr.eu-west-1.amazonaws.com
+	docker tag $(IMAGE_NAME) YOUR_ACCOUNT_ID.dkr.ecr.eu-west-1.amazonaws.com/$(IMAGE_NAME)
+	docker push YOUR_ACCOUNT_ID.dkr.ecr.eu-west-1.amazonaws.com/$(IMAGE_NAME)
+
+# Tout en un : build + run local
+docker_local: docker_build docker_run_local
+	@echo "API running on http://localhost:$(PORT)"
+	@echo "Docs available at http://localhost:$(PORT)/docs"
