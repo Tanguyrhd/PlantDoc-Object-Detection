@@ -166,7 +166,7 @@ info:
 # ====== API ======
 
 run_api:
-	uvicorn taxifare.api.fast:app --reload
+	uvicorn api.fast:app --reload
 
 	test_api_root:
 	pytest \

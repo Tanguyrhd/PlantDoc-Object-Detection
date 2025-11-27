@@ -16,6 +16,7 @@ ultralytics==8.3.232
 fastapi==0.108.0
 pytz
 uvicorn
+python-multipart
 
 # tests
 httpx           # HTTP client
