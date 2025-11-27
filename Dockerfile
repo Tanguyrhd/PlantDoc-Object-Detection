@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Install system dependencies needed for OpenCV
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -24,4 +24,4 @@ COPY results/ ./results/
 EXPOSE 8000
 
 # Command to run the FastAPI app with uvicorn
-CMD ["uvicorn", "api.fast:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD uvicorn api.fast:app --host 0.0.0.0 --port ${PORT:-8000}
