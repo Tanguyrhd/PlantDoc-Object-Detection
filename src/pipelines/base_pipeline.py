@@ -5,13 +5,13 @@ from typing import Dict, Tuple
 from PIL import Image
 import re
 
-from config import PipelineConfig
-from processing.yolo_converter import (
+from src.config import PipelineConfig
+from src.processing.yolo_converter import (
     create_class_mapping,
     export_to_yolo,
     create_yaml_config
 )
-from processing.data_validation import (
+from src.processing.data_validation import (
     clean_class_column,
     fix_zero_dimensions,
     verify_files_exist,
@@ -284,12 +284,12 @@ class BasePipeline(ABC):
 
         # Create class mapping
         class_column = self.class_column
-        class_mapping = create_class_mapping(self.df_train, class_column)
+        class_mapping = create_class_mapping(self.df_train_processed, class_column)
 
         # Export training data
         logger.info(f"\nExporting TRAINING data...")
         exported_train, skipped_train = export_to_yolo(
-            df=self.df_train,
+            df=self.df_train_processed,
             source_images_dir=self.config.train_images_dir,
             output_images_dir=output_paths['images_train'],
             output_labels_dir=output_paths['labels_train'],
