@@ -5,13 +5,13 @@ from typing import Dict, Tuple
 from PIL import Image
 import re
 
-from ..config import PipelineConfig
-from ..processing.yolo_converter import (
+from config import PipelineConfig
+from processing.yolo_converter import (
     create_class_mapping,
     export_to_yolo,
     create_yaml_config
 )
-from ..processing.data_validation import (
+from processing.data_validation import (
     clean_class_column,
     fix_zero_dimensions,
     verify_files_exist,
