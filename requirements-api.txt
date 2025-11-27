@@ -1,7 +1,10 @@
 fastapi
 uvicorn[standard]
 python-multipart
-ultralytics
 opencv-python-headless
 pillow
 numpy
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+ultralytics

@@ -24,4 +24,4 @@ COPY results/ ./results/
 EXPOSE 8000
 
 # Command to run the FastAPI app with uvicorn
-CMD uvicorn api.fast:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["sh", "-c", "uvicorn api.fast:app --host 0.0.0.0 --port ${PORT:-8000}"]
