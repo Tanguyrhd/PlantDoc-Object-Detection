@@ -47,7 +47,7 @@ def root():
         'models_loaded': list(app.state.models.keys())
     }
 
-executor = ThreadPoolExecutor
+executor = ThreadPoolExecutor(max_workers=4)
 
 async def predict_with_model(file: UploadFile, model: YOLO):
     """Generic function to make the pred with a choosen model"""
@@ -58,7 +58,7 @@ async def predict_with_model(file: UploadFile, model: YOLO):
     async with aiofiles.open(temp_path, "wb") as buffer:
         await buffer.write(await file.read())
 
-     # CPU-bound operation in a thread
+    # CPU-bound operation in a thread
     loop = asyncio.get_event_loop()
 
     def run_prediction():
