@@ -9,6 +9,9 @@ from PIL import Image
 import cv2
 import numpy as np
 import base64
+import asyncio
+import aiofiles
+from concurrent.futures import ThreadPoolExecutor
 
 app = FastAPI()
 
@@ -44,38 +47,47 @@ def root():
         'models_loaded': list(app.state.models.keys())
     }
 
+executor = ThreadPoolExecutor
+
 async def predict_with_model(file: UploadFile, model: YOLO):
     """Generic function to make the pred with a choosen model"""
     # Temp image save
     temp_path = f"/tmp/{file.filename}"
-    with open(temp_path, "wb") as buffer:
-        buffer.write(await file.read())
 
-    # Predict
-    results = model.predict(temp_path)
-    result = results[0]
+    # I/O async
+    async with aiofiles.open(temp_path, "wb") as buffer:
+        await buffer.write(await file.read())
 
-    # Get annotated image as base64
-    annotated_img = result.plot()
-    annotated_img = cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB)
-    pil_img = Image.fromarray(annotated_img)
-    img_byte_arr = io.BytesIO()
-    pil_img.save(img_byte_arr, format='PNG')
-    img_base64 = base64.b64encode(img_byte_arr.getvalue()).decode()
+     # CPU-bound operation in a thread
+    loop = asyncio.get_event_loop()
 
-    # Get predictions details
-    predictions = []
-    if result.boxes:
-        for box in result.boxes:
-            predictions.append({
-                'class_id': int(box.cls[0]),
-                'class_name': result.names[int(box.cls[0])],
-                'confidence': float(box.conf[0]),
-                'bbox': box.xyxy[0].tolist()  # [x1, y1, x2, y2]
-            })
+    def run_prediction():
+        results = model.predict(temp_path)
+        result = results[0]
 
-    # Clean the files
-    os.remove(temp_path)
+        annotated_img = result.plot()
+        annotated_img = cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB)
+        pil_img = Image.fromarray(annotated_img)
+        img_byte_arr = io.BytesIO()
+        pil_img.save(img_byte_arr, format='PNG')
+        img_base64 = base64.b64encode(img_byte_arr.getvalue()).decode()
+
+        predictions = []
+        if result.boxes:
+            for box in result.boxes:
+                predictions.append({
+                    'class_id': int(box.cls[0]),
+                    'class_name': result.names[int(box.cls[0])],
+                    'confidence': float(box.conf[0]),
+                    'bbox': box.xyxy[0].tolist()
+                })
+
+        return predictions, img_base64
+
+    predictions, img_base64 = await loop.run_in_executor(executor, run_prediction)
+
+    # Cleanup async
+    await asyncio.to_thread(os.remove, temp_path)
 
     return {
         'predictions': predictions,
