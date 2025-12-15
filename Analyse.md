@@ -23,7 +23,7 @@ Develop a complete solution for **automatic detection and classification of plan
 
 ### Proposed Solution
 
-A **3-level classification architecture** based on YOLO v8:
+A **3-level classification architecture** based on YOLO from ultralytics:
 
 1. **Species Identification**: Recognition of 13 plant species
 2. **Binary Classification**: Quick detection (healthy vs diseased)
@@ -69,8 +69,6 @@ I used the **PlantDoc dataset** (ACM CoDS-COMAD 2020) which contains:
 - **27 classes** including healthy and diseased leaves
 - Annotations with **bounding boxes** (PASCAL VOC format)
 
-**Justification**: Recognized academic dataset, quality annotations, sufficient diversity of species and diseases for a realistic use case.
-
 ---
 
 ## 3. Technical Architecture
@@ -95,9 +93,9 @@ The project follows a **modular layered architecture**:
                          ↓
 ┌─────────────────────────────────────────────────────────┐
 │              YOLO MODELS (Singleton)                    │
-│  - binary/models/best.pt                                │
-│  - species/models/best.pt                               │
-│  - diseases/models/best.pt                              │
+│  - binary                                               │
+│  - species                                              │
+│  - diseases                                             │
 └────────────────────────┬────────────────────────────────┘
                          │
                          ↓
@@ -131,8 +129,8 @@ PlantDoc-Object-Detection/
 │   │   └── logging_config.py    # Logging configuration
 │   └── main.py                   # Main orchestrator
 ├── dataset/                      # Raw and transformed data
-│   ├── TRAIN/                    # Original images and XML
-│   ├── TEST/                     # Validation images
+│   ├── TRAIN/                    # Original train images and XML
+│   ├── TEST/                     # Original validation images and XML
 │   ├── binary/                   # Binary classification dataset
 │   ├── species/                  # Species classification dataset
 │   └── diseases/                 # Disease classification dataset
@@ -785,23 +783,22 @@ app.add_middleware(
 
 **Dataset**:
 
-- Training: 1,890 images
-- Validation: 203 images
+- Training: 2,343 images
+- Validation: 236 images
 
 **Performance**:
 
-- **Average Precision**: 0.94
-- **Recall**: 0.91
-- **F1-score**: 0.92
-- **mAP@50**: 0.96
+- **Recall**: 0.80
+- **F1-score**: 0.83
+- **mAP@50**: 0.90
 
 **Confusion Matrix**:
 
 ```text
               Predicted
               Healthy  Diseased
-Actual Healthy    195        8
-       Diseased     7      196
+Actual Healthy    161        10
+       Diseased    16       239
 ```
 
 **Analysis**: Excellent performance, very few false negatives (undetected disease)
@@ -817,50 +814,48 @@ Actual Healthy    195        8
 
 **Performance**:
 
-- **Average Precision**: 0.88
-- **Recall**: 0.85
-- **F1-score**: 0.86
-- **mAP@50**: 0.91
+- **Recall**: 0.77
+- **F1-score**: 0.82
+- **mAP@50**: 0.81
 
 **Best Performing Classes**:
 
-- Tomato: mAP 0.97
-- Potato: mAP 0.95
-- Apple: mAP 0.93
+- Corn: mAP 0.99
+- Strawberry: mAP 0.98
+- Grape: mAP 0.95
 
 **Challenging Classes**:
 
-- Raspberry: mAP 0.76 (confusion with Strawberry)
-- Squash: mAP 0.79
+- Potato: mAP 0.67
+- Bell Pepper: mAP 0.68
 
 **Analysis**: Solid performance, expected confusion between visually similar species
 
 #### Disease Model (9 diseases)
 
-**Architecture**: YOLOv8m (medium)
+**Architecture**: YOLOv11m (medium)
 
 **Dataset**:
 
-- Training: 1,623 images
-- Validation: 174 images
+- Training: 2,245 images
+- Validation: 107 images
 
 **Performance**:
 
-- **Average Precision**: 0.79
-- **Recall**: 0.76
-- **F1-score**: 0.77
-- **mAP@50**: 0.84
+- **Recall**: 0.64
+- **F1-score**: 0.55
+- **mAP@50**: 0.68
 
 **Well-Detected Diseases**:
 
-- Late Blight: mAP 0.92
-- Powdery Mildew: mAP 0.89
-- Rust: mAP 0.87
+- Rust: mAP 0.95
+- Scab: mAP 0.83
+- Powder Mildew mAP 0.81
 
 **Challenging Diseases**:
 
-- Bacterial Spot: mAP 0.68
-- Scab: mAP 0.71
+- Bacterial Spot: mAP 0.44
+- Early blight: mAP 0.44
 
 **Analysis**: Acceptable but improvable performance. Expected difficulty due to similar symptoms between certain diseases.
 
