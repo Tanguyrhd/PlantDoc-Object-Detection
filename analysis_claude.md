@@ -70,10 +70,11 @@ Three specialized YOLOv8 models were trained for different classification tasks:
 
 **Confusion Matrix Insights**:
 
-| True Label | Predicted Healthy | Predicted Diseased |
-|------------|-------------------|--------------------|
-| Healthy    | 89%               | 12%                |
-| Diseased   | 11%               | 88%                |
+| True Label | Predicted Healthy | Predicted Diseased | Predicted Background |
+|------------|-------------------|--------------------|----------------------|
+| Healthy    | 89%               | 6%                 | 6%                   |
+| Diseased   | 6%                | 88%                | 6%                   |
+| Background | 0%                | 0%                 | 0%                   |
 
 **Key Observations**:
 

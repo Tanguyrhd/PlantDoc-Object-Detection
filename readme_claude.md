@@ -307,33 +307,33 @@ CMD ["uvicorn", "api.fast:app", "--host", "0.0.0.0", "--port", "${PORT:-8000}"]
 
 ### Local Development Setup
 
-1. **Clone the repository**:
+- **Clone the repository**:
 
-```bash
-git clone https://github.com/Tanguyrhd/personal-projects/PlantDoc-Object-Detection.git
-cd PlantDoc-Object-Detection
-```
+  - ```bash
+    git clone https://github.com/Tanguyrhd/personal-projects/PlantDoc-Object-Detection.git
+    cd PlantDoc-Object-Detection
+    ```
 
-1. **Create virtual environment**:
+- **Create virtual environment**:
 
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+  - ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    ```
 
-1. **Install dependencies**:
+- **Install dependencies**:
 
-For training pipelines:
+  For training pipelines:
 
-```bash
-pip install -r requirements.txt
-```
+  - ```bash
+    pip install -r requirements.txt
+    ```
 
-1. **Verify installation**:
+- **Verify installation**:
 
-```bash
-python -c "from ultralytics import YOLO; print('YOLO ready')"
-```
+  - ```bash
+    python -c "from ultralytics import YOLO; print('YOLO ready')"
+    ```
 
 ---
 
@@ -341,8 +341,9 @@ python -c "from ultralytics import YOLO; print('YOLO ready')"
 
 ### Training New Models
 
-1. **Ensure dataset is in place**:
-```
+- **Ensure dataset is in place**:
+
+```bash
 dataset/
 ├── TRAIN/          # Training images
 ├── TEST/           # Test images
@@ -351,6 +352,7 @@ dataset/
 ```
 
 2. **Run a pipeline**:
+
 ```bash
 # Binary classification
 python src/main.py --pipeline binary
@@ -435,6 +437,7 @@ gcloud run deploy plantdoc-api \
 ## API Documentation
 
 ### Base URL
+
 ```
 Local: http://localhost:8000
 Production: https://your-cloudrun-url.run.app
