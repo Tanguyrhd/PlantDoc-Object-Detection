@@ -54,7 +54,7 @@ A computer vision system that analyzes leaf images to:
 | Species          | Plant Identification    | 67-99% per class     | Production Ready    |
 | Disease          | Disease Diagnosis       | 44-95% per disease   | Limited Deployment* |
 
-*Disease model reliable only for distinctive diseases (Rust, Scab, Powdery Mildew). See [analysis_claude.md](analysis_claude.md) for details.
+*Disease model reliable only for distinctive diseases (Rust, Scab, Powdery Mildew). See [analysis.md](analysis.md) for details.
 
 **Training Results Visualization**:
 
