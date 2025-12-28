@@ -165,7 +165,7 @@ info:
 
 # ====== API & DOCKER ======
 
-run_api:
+run-api:
 	uvicorn api.fast:app --reload
 
 	test_api_root:
@@ -182,20 +182,20 @@ GCP_PROJECT_ID = plantdoc-479518
 GCP_REGION = europe-west1
 ARTIFACT_REGISTRY = europe-west1-docker.pkg.dev/$(GCP_PROJECT_ID)/plantdoc-repo
 
-# Build l'image Docker
-docker_build:
+# Build Docker image
+docker-build:
 	docker build -t $(IMAGE_NAME) .
 
-# Test en local - run le container
-docker_run_local:
+# local test - container run
+docker-run-local:
 	docker run -d -p $(PORT):$(PORT) --name $(CONTAINER_NAME) $(IMAGE_NAME)
 
-# Stop et remove le container local
-docker_stop:
+# Stop and remove local container
+docker-stop:
 	docker stop $(CONTAINER_NAME) && docker rm $(CONTAINER_NAME)
 
-# Deploy sur Google Cloud Run avec Artifact Registry
-docker_deploy_cloud:
+# Deploy on Google Cloud Run with Artifact Registry
+docker-deploy-cloud:
 	docker tag $(IMAGE_NAME) $(ARTIFACT_REGISTRY)/$(IMAGE_NAME):latest
 	docker push $(ARTIFACT_REGISTRY)/$(IMAGE_NAME):latest
 	gcloud run deploy $(IMAGE_NAME) \
@@ -206,13 +206,13 @@ docker_deploy_cloud:
 		--memory 2Gi \
 		--cpu 2
 
-# Ou pour AWS ECR + ECS
+# Or for AWS ECR + ECS
 docker_deploy_aws:
 	aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin YOUR_ACCOUNT_ID.dkr.ecr.eu-west-1.amazonaws.com
 	docker tag $(IMAGE_NAME) YOUR_ACCOUNT_ID.dkr.ecr.eu-west-1.amazonaws.com/$(IMAGE_NAME)
 	docker push YOUR_ACCOUNT_ID.dkr.ecr.eu-west-1.amazonaws.com/$(IMAGE_NAME)
 
-# Tout en un : build + run local
+# All in one : build + run local
 docker_local: docker_build docker_run_local
 	@echo "API running on http://localhost:$(PORT)"
 	@echo "Docs available at http://localhost:$(PORT)/docs"
