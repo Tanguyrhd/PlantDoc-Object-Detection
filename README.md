@@ -785,8 +785,8 @@ Creative Commons Attribution 4.0 International - Free to use for learning and re
 
 **Author**: Tanguy Richard
 **GitHub**: [Tanguyrhd](https://github.com/Tanguyrhd)
-**Project**: [PlantDoc-Object-Detection](https://github.com/Tanguyrhd/personal-projects/PlantDoc-Object-Detection)
+**Project**: [PlantDoc-Object-Detection](https://github.com/Tanguyrhd/PlantDoc-Object-Detection)
 
 For questions about implementation details, see the code comments or open an issue.
 
-For questions about model performance and data analysis, see [analysis_claude.md](analysis_claude.md).
+For questions about model performance and data analysis, see [analysis.md](analysis.md).
