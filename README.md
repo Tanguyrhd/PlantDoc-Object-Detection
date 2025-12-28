@@ -54,7 +54,7 @@ A computer vision system that analyzes leaf images to:
 | Species          | Plant Identification    | 67-99% per class     | Production Ready    |
 | Disease          | Disease Diagnosis       | 44-95% per disease   | Limited Deployment* |
 
-*Disease model reliable only for distinctive diseases (Rust, Scab, Powdery Mildew). See [analysis_claude.md](analysis_claude.md) for details.
+*Disease model reliable only for distinctive diseases (Rust, Scab, Powdery Mildew). See [analysis.md](analysis.md) for details.
 
 **Training Results Visualization**:
 
@@ -785,8 +785,8 @@ Creative Commons Attribution 4.0 International - Free to use for learning and re
 
 **Author**: Tanguy Richard
 **GitHub**: [Tanguyrhd](https://github.com/Tanguyrhd)
-**Project**: [PlantDoc-Object-Detection](https://github.com/Tanguyrhd/personal-projects/PlantDoc-Object-Detection)
+**Project**: [PlantDoc-Object-Detection](https://github.com/Tanguyrhd/PlantDoc-Object-Detection)
 
 For questions about implementation details, see the code comments or open an issue.
 
-For questions about model performance and data analysis, see [analysis_claude.md](analysis_claude.md).
+For questions about model performance and data analysis, see [analysis.md](analysis.md).
