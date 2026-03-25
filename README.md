@@ -1,3 +1,5 @@
+Acknowledgment: This project builds on a fork for the idea and dataset from my mentor, Jean-Philippe Petit-Frere. All implementation and development in this repository were done independently.
+
 # PlantDoc Object Detection - Implementation Guide
 
 A production-ready plant disease detection system using YOLO, featuring a three-pipeline architecture for binary classification, species identification, and disease diagnosis. Deployed as an asynchronous FastAPI service on Google Cloud Run.
